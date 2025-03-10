@@ -1,0 +1,1 @@
+# shared_shop_KatoRyuma
