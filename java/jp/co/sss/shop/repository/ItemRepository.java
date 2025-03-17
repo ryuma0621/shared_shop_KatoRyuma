@@ -60,7 +60,8 @@ public interface ItemRepository extends JpaRepository<Item, Integer> {
 	 * @param orderNum 注文数
 	 * @return 商品エンティティ
 	 */
-	//TODO ここにメソッドを定義;
+	@Query("SELECT i FROM Item i WHERE i.id = :id AND i.stock < :orderNum")
+	Item findItemWithInsufficientStock(@Param("id") Integer id, @Param("orderNum") Integer orderNum);
 
 	/**
 	 * 商品IDと削除フラグを条件に検索

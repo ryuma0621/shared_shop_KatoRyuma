@@ -152,5 +152,4 @@ public class OrderForm implements Serializable {
 		this.payMethod = payMethod;
 	}
 
-
 }
