@@ -9,8 +9,9 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpSession;
@@ -40,7 +41,7 @@ public class ClientBasketController {
      * @param model Viewとの値受渡し
      * @return 買い物かご内の商品一覧
      */
-    @GetMapping("/client/basket/list")
+    @RequestMapping(path = "/client/basket/list", method = { RequestMethod.POST, RequestMethod.GET })
     public String basketList(Model model) {
         List<BasketBean> basketList = getBasketList();
         List<String> itemNameListLessThan = new ArrayList<>();
