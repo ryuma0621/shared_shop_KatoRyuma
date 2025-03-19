@@ -2,6 +2,7 @@ package jp.co.sss.shop.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,6 +31,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 	 * @param userId 会員ID
 	 * @return 注文エンティティのリスト
 	 */
+	@EntityGraph(attributePaths = {"orderItemsList"})
 	@Query("SELECT o FROM Order o WHERE o.user.id = :userId ORDER BY o.insertDate DESC")
 	Page<Order> findByUserIdOrderByDateDesc(@Param("userId") Integer userId, Pageable pageable);
 

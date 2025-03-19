@@ -9,17 +9,25 @@
 
 <body class="user order_list">
 	<h2 th:class="title" th:text="#{order}+#{title.list}"></h2>
-	<div th:if="${#lists.isEmpty(orders)}">
+
+	<!-- 注文履歴がない場合 -->
+	<div th:if="${orders == null or #lists.isEmpty(orders)}">
 		<p th:text="#{msg.client.order.list.none}"></p>
 	</div>
-	<table class="list_table order" th:if="!${#lists.isEmpty(orders)}">
+
+	<!-- 注文一覧がある場合 -->
+	<table class="list_table order" th:if="${orders != null and not #lists.isEmpty(orders)}">
 		<tr>
 			<th>[[#{data.client.order.date}]]</th>
 			<th>[[#{paymethod.str}]]</th>
 			<th>[[#{data.total.price}]]</th>
 		</tr>
 		<tr th:each="order: ${orders}">
-			<td><a th:href="@{/client/order/detail/{id}(id=${order.id})}" th:text="${order.insertDate}"></a></td>
+			<td>
+				<a th:href="@{/client/order/detail/{id}(id=${order.id})}"
+					th:text="${order.insertDate}">
+				</a>
+			</td>
 			<td th:switch="${order.payMethod}">
 				<span th:case="1">[[#{paymethod.credit.str}]]</span>
 				<span th:case="2">[[#{paymethod.bank.str}]]</span>
@@ -27,6 +35,7 @@
 				<span th:case="4">[[#{paymethod.emoney.str}]]</span>
 				<span th:case="5">[[#{paymethod.convenience.str}]]</span>
 			</td>
+			<!-- 注文合計金額を正しく表示 -->
 			<td th:text="${order.total}" class="text"></td>
 		</tr>
 	</table>

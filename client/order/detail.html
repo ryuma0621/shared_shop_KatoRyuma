@@ -14,7 +14,7 @@
 		<table class="detail_table payment">
 			<tr>
 				<th>[[#{data.client.order.date}]]</th>
-				<td th:text="${order.insertDate}"></td>
+				<td th:text="${#dates.format(order.insertDate, 'yyyy/MM/dd HH:mm')}"></td>
 			</tr>
 			<tr>
 				<th>[[#{paymethod.str}]]</th>
@@ -43,6 +43,7 @@
 				<td th:text="${order.phoneNumber}"></td>
 			</tr>
 		</table>
+
 		<table class="list_table detail">
 			<tr>
 				<th>[[#{data.item.name}]]</th>
@@ -50,19 +51,21 @@
 				<th>[[#{data.order.num}]]</th>
 				<th>[[#{data.subtotal}]]</th>
 			</tr>
-			<tr th:each="orderItem: ${orderItemBeans}">
-				<td th:text="${orderItem.name}"></td>
+			<tr th:each="orderItem: ${order.orderItemsList}">
+				<td th:text="${orderItem.item.name}"></td>
 				<td th:text="${orderItem.price}"></td>
-				<td th:text="${orderItem.orderNum}"></td>
-				<td th:text="${orderItem.subtotal}"></td>
+				<td th:text="${orderItem.quantity}"></td>
+				<td th:text="${orderItem.price * orderItem.quantity}"></td>
 			</tr>
 			<tr>
 				<td colspan="2"></td>
 				<td class="total">[[#{data.total}]]</td>
-				<td class="total" th:text="${total}"></td>
+				<td class="total" th:text="${order.orderItemsList.![price * quantity].stream().mapToInt(i -> i).sum()}">
+				</td>
 			</tr>
 		</table>
-		<form th:action="@{/client/order/list}" method="post" class="detail_button_area">
+
+		<form th:action="@{/client/order/list}" method="get" class="detail_button_area">
 			<input type="submit" value="戻る" class="back_button" />
 		</form>
 	</div>
