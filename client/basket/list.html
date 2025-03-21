@@ -11,16 +11,18 @@
 	<h2 th:class="title" th:text="#{basket}"></h2>
 
 	<!-- 在庫エラーメッセージ表示 -->
-	<th:block th:if="${itemNameListLessThan != null || itemNameListZero != null}">
+	<th:block th:if="${basketBeans != null and not #lists.isEmpty(basketBeans)}">
+
 		<br />
-		<ul class="error_list_no_mark" th:if="${itemNameListLessThan != null}">
+		<ul class="error_list_no_mark" th:if="${not #lists.isEmpty(itemNameListLessThan)}">
 			<li th:each="err : ${itemNameListLessThan}" th:text="#{msg.basket.stock.short(${err})}"></li>
 		</ul>
-		<ul class="error_list_no_mark" th:if="${itemNameListZero != null}">
+		<ul class="error_list_no_mark" th:if="${not #lists.isEmpty(itemNameListZero)}">
 			<li th:each="err : ${itemNameListZero}" th:text="#{msg.basket.stock.none(${err})}"></li>
 		</ul>
 		<br />
 	</th:block>
+
 
 	<!-- 買い物かごが空の時 -->
 	<div th:if="${session.basketBeans == null or #lists.isEmpty(session.basketBeans)}">

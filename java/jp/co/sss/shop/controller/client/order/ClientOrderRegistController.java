@@ -1,18 +1,14 @@
 package jp.co.sss.shop.controller.client.order;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jp.co.sss.shop.bean.BasketBean;
-import jp.co.sss.shop.bean.OrderBean;
 import jp.co.sss.shop.bean.OrderItemBean;
 import jp.co.sss.shop.bean.UserBean;
+import jp.co.sss.shop.entity.Item;
 import jp.co.sss.shop.entity.Order;
 import jp.co.sss.shop.entity.OrderItem;
 import jp.co.sss.shop.entity.User;
@@ -275,14 +271,26 @@ public class ClientOrderRegistController {
 		// 注文商品リストを作成
 		List<OrderItem> orderItems = basketBeans.stream().map(bean -> {
 			OrderItem orderItem = new OrderItem();
-			orderItem.setItem(itemRepository.findById(bean.getId()).orElse(null));
-			orderItem.setQuantity(bean.getOrderNum());
+			Item item = itemRepository.findById(bean.getId()).orElse(null);
 
-			// 価格が NULL にならないようにする
-			int price = orderItem.getItem() != null ? orderItem.getItem().getPrice() : 0;
-			orderItem.setPrice(price);
+			if (item != null) {
+				// 在庫を減らす処理
+				int updatedStock = item.getStock() - bean.getOrderNum();
+				if (updatedStock < 0) {
+					updatedStock = 0; // 在庫不足にならないようにする
+				}
+				item.setStock(updatedStock); // 在庫を更新
+				itemRepository.save(item); // DBに更新
 
-			orderItem.setOrder(order);
+				orderItem.setItem(item);
+				orderItem.setQuantity(bean.getOrderNum());
+
+				// 価格が NULL にならないようにする
+				int price = item.getPrice();
+				orderItem.setPrice(price);
+
+				orderItem.setOrder(order);
+			}
 			return orderItem;
 		}).toList();
 
@@ -304,80 +312,5 @@ public class ClientOrderRegistController {
 	@RequestMapping(path = "/complete", method = { RequestMethod.GET })
 	public String orderCompleteFinish() {
 		return "client/order/complete";
-	}
-
-	/**
-	 * 注文一覧画面の表示処理
-	 * 
-	 * @param model    ビューへのデータ送信
-	 * @param pageable ページング情報
-	 * @return 注文一覧画面
-	 */
-	@GetMapping("/list")
-	public String orderList(Model model, Pageable pageable) {
-		// セッションからログインユーザー情報を取得
-		UserBean userBean = (UserBean) session.getAttribute("user");
-		if (userBean == null) {
-			return "redirect:/login"; // ログインしていない場合はログイン画面へ
-		}
-
-		// ユーザーの注文情報を取得
-		Page<Order> ordersPage = orderRepository.findByUserIdOrderByDateDesc(userBean.getId(), pageable);
-
-		// 注文情報リストを生成
-		List<OrderBean> orderBeanList = new ArrayList<>();
-		for (Order order : ordersPage.getContent()) {
-			// BeanToolsを使用して注文情報をBeanに変換
-			OrderBean orderBean = beanTools.copyEntityToOrderBean(order);
-			// 注文の合計金額を計算
-			int total = priceCalc.orderItemPriceTotal(order.getOrderItemsList());
-			// 合計金額をセット
-			orderBean.setTotal(total);
-			orderBeanList.add(orderBean);
-		}
-
-		// 注文情報リストをViewへ渡す
-		model.addAttribute("pages", ordersPage);
-		model.addAttribute("orders", orderBeanList);
-
-		return "client/order/list";
-	}
-
-	/**
-	 * 注文詳細画面の表示処理
-	 * 
-	 * @param id    注文ID
-	 * @param model ビューへのデータ送信
-	 * @return 注文詳細画面
-	 */
-	@GetMapping("/detail/{id}")
-	public String orderDetail(@PathVariable("id") Integer id, Model model) {
-		// セッションからログインユーザー情報を取得
-		UserBean userBean = (UserBean) session.getAttribute("user");
-		if (userBean == null) {
-			return "redirect:/login"; // ログインしていない場合はログイン画面へ
-		}
-
-		// 注文情報を取得
-		Order order = orderRepository.findById(id).orElse(null);
-
-		// 他のユーザーの注文なら一覧に戻す
-		if (order == null || !order.getUser().getId().equals(userBean.getId())) {
-			return "redirect:/client/order/list";
-		}
-
-		// BeanToolsを使用して注文情報をBeanに変換
-		OrderBean orderBean = beanTools.copyEntityToOrderBean(order);
-		// 注文商品のリストを取得
-		List<OrderItemBean> orderItemBeanList = beanTools.generateOrderItemBeanList(order.getOrderItemsList());
-		// 注文の合計金額を計算
-		int total = priceCalc.orderItemBeanPriceTotalUseSubtotal(orderItemBeanList);
-
-		// 注文情報をViewへ渡す
-		model.addAttribute("order", orderBean);
-		model.addAttribute("orderItemBeans", orderItemBeanList);
-		model.addAttribute("total", total);
-
-		return "client/order/detail";
 	}
 }

@@ -27,164 +27,171 @@ import jp.co.sss.shop.repository.ItemRepository;
 @Controller
 public class ClientBasketController {
 
-    /** 商品情報リポジトリ */
-    @Autowired
-    ItemRepository itemRepository;
+	/** 商品情報リポジトリ */
+	@Autowired
+	ItemRepository itemRepository;
 
-    /** セッション管理 */
-    @Autowired
-    HttpSession session;
+	/** セッション管理 */
+	@Autowired
+	HttpSession session;
 
-    /**
-     * 買い物かごの一覧を表示
-     *
-     * @param model Viewとの値受渡し
-     * @return 買い物かご内の商品一覧
-     */
-    @RequestMapping(path = "/client/basket/list", method = { RequestMethod.POST, RequestMethod.GET })
-    public String basketList(Model model) {
-        List<BasketBean> basketList = getBasketList();
-        List<String> itemNameListLessThan = new ArrayList<>();
-        List<String> itemNameListZero = new ArrayList<>();
+	/**
+	 * 買い物かごの一覧を表示
+	 *
+	 * @param model Viewとの値受渡し
+	 * @return 買い物かご内の商品一覧
+	 */
 
-        Iterator<BasketBean> iterator = basketList.iterator();
-        while (iterator.hasNext()) {
-            BasketBean bean = iterator.next();
-            Optional<Item> optItem = itemRepository.findById(bean.getId());
-            if (optItem.isPresent()) {
-                Item item = optItem.get();
-                if (bean.getOrderNum() > item.getStock()) {
-                    bean.setOrderNum(item.getStock());
-                    itemNameListLessThan.add(item.getName());
-                }
-                if (item.getStock() == 0) {
-                    itemNameListZero.add(item.getName());
-                    iterator.remove();
-                }
-            }
-        }
+	@RequestMapping(path = "/client/basket/list", method = { RequestMethod.POST, RequestMethod.GET })
+	public String basketList(Model model) {
+		List<BasketBean> basketList = getBasketList();
 
-        model.addAttribute("basketBeans", basketList);
-        model.addAttribute("itemNameListLessThan", itemNameListLessThan);
-        model.addAttribute("itemNameListZero", itemNameListZero);
-        session.setAttribute("basketBeans", basketList);
+		@SuppressWarnings("unchecked")
+		List<String> itemNameListLessThan = (List<String>) session.getAttribute("itemNameListLessThan");
+		if (itemNameListLessThan == null) {
+			itemNameListLessThan = new ArrayList<>();
+		}
 
-        return "client/basket/list";
-    }
+		List<String> itemNameListZero = new ArrayList<>();
+		Iterator<BasketBean> iterator = basketList.iterator();
+		while (iterator.hasNext()) {
+			BasketBean bean = iterator.next();
+			Optional<Item> optItem = itemRepository.findById(bean.getId());
+			if (optItem.isPresent()) {
+				Item item = optItem.get();
+				if (item.getStock() == 0) {
+					itemNameListZero.add(item.getName());
+					iterator.remove();
+					continue;
+				}
+				if (bean.getOrderNum() > item.getStock()) {
+					bean.setOrderNum(item.getStock());
+					itemNameListLessThan.add(item.getName());
+				}
+			}
+		}
 
-    /**
-     * 商品を買い物かごに追加する処理
-     *
-     * @param id 商品ID
-     * @return 買い物かご画面（リダイレクト）
-     */
-    @PostMapping("/client/basket/add")
-    public String addItem(@RequestParam("id") Integer id, Model model) {
-        List<BasketBean> basketList = getBasketList();
-        Optional<Item> optItem = itemRepository.findById(id);
+		session.setAttribute("basketBeans", basketList);
+		model.addAttribute("basketBeans", basketList);
+		model.addAttribute("itemNameListLessThan", itemNameListLessThan);
+		model.addAttribute("itemNameListZero", itemNameListZero);
 
-        if (optItem.isEmpty()) {
-            model.addAttribute("errorMessage", "指定された商品が見つかりません");
-            return "redirect:/client/error";
-        }
+		return "client/basket/list";
+	}
 
-        Item item = optItem.get();
-        List<String> itemNameListLessThan = new ArrayList<>();
-        boolean isAdded = false;
+	/**
+	 * 商品を買い物かごに追加する処理
+	 *
+	 * @param id 商品ID
+	 * @return 買い物かご画面（リダイレクト）
+	 */
+	@PostMapping("/client/basket/add")
+	public String addItem(@RequestParam("id") Integer id, Model model) {
+		List<BasketBean> basketList = getBasketList();
+		Optional<Item> optItem = itemRepository.findById(id);
 
-        for (BasketBean bean : basketList) {
-            if (bean.getId().equals(id)) {
-                if (bean.getOrderNum() < item.getStock()) {
-                    bean.setOrderNum(bean.getOrderNum() + 1);
-                } else {
-                    itemNameListLessThan.add(item.getName());
-                }
-                isAdded = true;
-                break;
-            }
-        }
+		if (optItem.isEmpty()) {
+			model.addAttribute("errorMessage", "指定された商品が見つかりません");
+			return "redirect:/client/error";
+		}
 
-        if (!isAdded) {
-            if (item.getStock() > 0) {
-                BasketBean newItem = new BasketBean();
-                newItem.setId(item.getId());
-                newItem.setName(item.getName());
-                newItem.setOrderNum(1);
-                newItem.setStock(item.getStock());
-                basketList.add(0, newItem);
-            } else {
-                itemNameListLessThan.add(item.getName());
-            }
-        }
+		Item item = optItem.get();
+		List<String> itemNameListLessThan = new ArrayList<>();
+		boolean isAdded = false;
 
-        session.setAttribute("basketBeans", basketList);
-        session.setAttribute("itemNameListLessThan", itemNameListLessThan);
+		for (BasketBean bean : basketList) {
+			if (bean.getId().equals(id)) {
+				if (bean.getOrderNum() < item.getStock()) {
+					bean.setOrderNum(bean.getOrderNum() + 1);
+				} else {
+					itemNameListLessThan.add(item.getName());
+				}
+				isAdded = true;
+				break;
+			}
+		}
 
-        return "redirect:/client/basket/list";
-    }
+		if (!isAdded) {
+			if (item.getStock() > 0) {
+				BasketBean newItem = new BasketBean();
+				newItem.setId(item.getId());
+				newItem.setName(item.getName());
+				newItem.setOrderNum(1);
+				newItem.setStock(item.getStock());
+				basketList.add(0, newItem);
+			} else {
+				itemNameListLessThan.add(item.getName());
+			}
+		}
 
-    /**
-     * 買い物かごの商品を削除する処理
-     *
-     * @param id 削除対象の商品ID
-     * @return 買い物かご一覧画面（リダイレクト）
-     */
-    @PostMapping("/client/basket/delete")
-    public String deleteItem(@RequestParam("id") Integer id) {
-        List<BasketBean> basketList = getBasketList();
+		session.setAttribute("basketBeans", basketList);
+		session.setAttribute("itemNameListLessThan", itemNameListLessThan); // session に保存
 
-        basketList.removeIf(bean -> bean.getId().equals(id));
+		return "redirect:/client/basket/list";
+	}
 
-        session.setAttribute("basketBeans", basketList);
-        return "redirect:/client/basket/list";
-    }
+	/**
+	 * 買い物かごの商品を削除する処理
+	 *
+	 * @param id 削除対象の商品ID
+	 * @return 買い物かご一覧画面（リダイレクト）
+	 */
+	@PostMapping("/client/basket/delete")
+	public String deleteItem(@RequestParam("id") Integer id) {
+		List<BasketBean> basketList = getBasketList();
 
-    /**
-     * 買い物かごを空にする処理
-     *
-     * @return 買い物かご一覧画面（リダイレクト）
-     */
-    @PostMapping("/client/basket/allDelete")
-    public String allDelete() {
-        session.removeAttribute("basketBeans");
-        return "redirect:/client/basket/list";
-    }
+		basketList.removeIf(bean -> bean.getId().equals(id));
 
-    /**
-     * 買い物かごの商品個数を1減らす
-     *
-     * @param id 商品ID
-     * @return 買い物かご内の商品一覧（リダイレクト）
-     */
-    @PostMapping("/client/basket/subtract")
-    public String subtractCountItem(@RequestParam("id") Integer id, Model model) {
-        List<BasketBean> basketList = getBasketList();
+		session.setAttribute("basketBeans", basketList);
+		return "redirect:/client/basket/list";
+	}
 
-        Iterator<BasketBean> iterator = basketList.iterator();
-        while (iterator.hasNext()) {
-            BasketBean bean = iterator.next();
-            if (bean.getId().equals(id)) {
-                if (bean.getOrderNum() > 1) {
-                    bean.setOrderNum(bean.getOrderNum() - 1);
-                } else {
-                    iterator.remove();
-                }
-                break;
-            }
-        }
+	/**
+	 * 買い物かごを空にする処理
+	 *
+	 * @return 買い物かご一覧画面（リダイレクト）
+	 */
+	@PostMapping("/client/basket/allDelete")
+	public String allDelete() {
+		session.removeAttribute("basketBeans");
+		return "redirect:/client/basket/list";
+	}
 
-        session.setAttribute("basketBeans", basketList);
-        return "redirect:/client/basket/list";
-    }
+	/**
+	 * 買い物かごの商品個数を1減らす
+	 *
+	 * @param id 商品ID
+	 * @return 買い物かご内の商品一覧（リダイレクト）
+	 */
+	@PostMapping("/client/basket/subtract")
+	public String subtractCountItem(@RequestParam("id") Integer id, Model model) {
+		List<BasketBean> basketList = getBasketList();
 
-    /**
-     * セッションから買い物かご情報を取得（型安全な取得）
-     *
-     * @return 買い物かごリスト
-     */
-    @SuppressWarnings("unchecked")
-    private List<BasketBean> getBasketList() {
-        List<BasketBean> basketBeans = (List<BasketBean>) session.getAttribute("basketBeans");
-        return (basketBeans != null) ? new LinkedList<>(basketBeans) : new LinkedList<>();
-    }
+		Iterator<BasketBean> iterator = basketList.iterator();
+		while (iterator.hasNext()) {
+			BasketBean bean = iterator.next();
+			if (bean.getId().equals(id)) {
+				if (bean.getOrderNum() > 1) {
+					bean.setOrderNum(bean.getOrderNum() - 1);
+				} else {
+					iterator.remove();
+				}
+				break;
+			}
+		}
+
+		session.setAttribute("basketBeans", basketList);
+		return "redirect:/client/basket/list";
+	}
+
+	/**
+	 * セッションから買い物かご情報を取得（型安全な取得）
+	 *
+	 * @return 買い物かごリスト
+	 */
+	@SuppressWarnings("unchecked")
+	private List<BasketBean> getBasketList() {
+		List<BasketBean> basketBeans = (List<BasketBean>) session.getAttribute("basketBeans");
+		return (basketBeans != null) ? new LinkedList<>(basketBeans) : new LinkedList<>();
+	}
 }

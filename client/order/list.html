@@ -24,8 +24,7 @@
 		</tr>
 		<tr th:each="order: ${orders}">
 			<td>
-				<a th:href="@{/client/order/detail/{id}(id=${order.id})}"
-					th:text="${order.insertDate}">
+				<a th:href="@{/client/order/detail/{id}(id=${order.id})}" th:text="${order.insertDate}">
 				</a>
 			</td>
 			<td th:switch="${order.payMethod}">
@@ -39,6 +38,11 @@
 			<td th:text="${order.total}" class="text"></td>
 		</tr>
 	</table>
+	<div th:if="${pages != null and pages.totalPages > 1}" class="pagination">
+		<a th:if="${pages.hasPrevious()}" th:href="@{/client/order/list(page=${pages.number - 1})}">&laquo; 前へ</a>
+		<span th:text="${pages.number + 1} + ' / ' + ${pages.totalPages}"></span>
+		<a th:if="${pages.hasNext()}" th:href="@{/client/order/list(page=${pages.number + 1})}">次へ &raquo;</a>
+	</div>
 </body>
 
 </html>
